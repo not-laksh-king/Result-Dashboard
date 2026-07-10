@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
+# YAHAN FIX KIYA HAI: landscape import kiya hai
+from reportlab.lib.pagesizes import A4, landscape 
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 import tempfile
@@ -19,7 +20,6 @@ def extract_clean_data(file_obj, paper_name):
         
     header_row = -1
     for i in range(min(15, len(df))): 
-        # YAHAN FIX KIYA HAI: Har cell ki value ko strictly text (str) banakar search karna
         row_values = df.iloc[i].tolist()
         if any('Student Name' in str(val) for val in row_values):
             header_row = i
@@ -46,7 +46,7 @@ def extract_clean_data(file_obj, paper_name):
     df_clean = df_clean[df_clean['Student Name'] != 'NAN']
     df_clean = df_clean[df_clean['Student Name'] != '']
     
-    # Duplicate Handle (Jaise 2 Laksh Sehgal)
+    # Duplicate Handle
     duplicate_mask = df_clean.duplicated(subset=['Student Name'], keep=False)
     if duplicate_mask.any():
         counts = df_clean.groupby('Student Name').cumcount() + 1
@@ -54,10 +54,19 @@ def extract_clean_data(file_obj, paper_name):
     
     return df_clean
 
-# --- 3. PDF Generator Logic ---
+# --- 3. PDF Generator Logic (Landscape Fix) ---
 def create_beautiful_pdf(df, title):
     temp_pdf = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    doc = SimpleDocTemplate(temp_pdf.name, pagesize=A4)
+    
+    # YAHAN FIX KIYA HAI: pagesize ko landscape(A4) kiya aur margins kam kiye taaki space mile
+    doc = SimpleDocTemplate(
+        temp_pdf.name, 
+        pagesize=landscape(A4), 
+        rightMargin=20, 
+        leftMargin=20, 
+        topMargin=20, 
+        bottomMargin=20
+    )
     elements = []
     
     styles = getSampleStyleSheet()
@@ -70,18 +79,20 @@ def create_beautiful_pdf(df, title):
     data = [df_string.columns.tolist()] + df_string.values.tolist()
     
     t = Table(data, repeatRows=1) 
+    
+    # YAHAN FIX KIYA HAI: Font size thoda adjust kiya hai taaki text kata hua na aaye
     t.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2B3A55")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,0), 10),
-        ('BOTTOMPADDING', (0,0), (-1,0), 10),
-        ('TOPPADDING', (0,0), (-1,0), 10),
+        ('FONTSIZE', (0,0), (-1,0), 9), # Header Font
+        ('BOTTOMPADDING', (0,0), (-1,0), 8),
+        ('TOPPADDING', (0,0), (-1,0), 8),
         ('BACKGROUND', (0,1), (-1,-1), colors.HexColor("#F8F9FA")),
         ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#DDDDDD")),
         ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
-        ('FONTSIZE', (0,1), (-1,-1), 9),
+        ('FONTSIZE', (0,1), (-1,-1), 8), # Data Font
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#F2F6FC")])
     ]))
     
