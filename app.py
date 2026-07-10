@@ -19,8 +19,9 @@ def extract_clean_data(file_obj, paper_name):
         
     header_row = -1
     for i in range(min(15, len(df))): 
-        row_values = df.iloc[i].astype(str).tolist()
-        if any('Student Name' in val for val in row_values):
+        # YAHAN FIX KIYA HAI: Har cell ki value ko strictly text (str) banakar search karna
+        row_values = df.iloc[i].tolist()
+        if any('Student Name' in str(val) for val in row_values):
             header_row = i
             break
             
@@ -142,13 +143,11 @@ with col2:
                     
                 st.session_state['full_df'] = result_df
 
-    # Agar data exist karta hai toh dikhao
     if 'full_df' in st.session_state:
         df = st.session_state['full_df']
         
-        # Multiselect search bar
         all_names = df['Student Name'].tolist()
-        selected_names = st.multiselect("🔍 Search & Compare (Type naam, enter dabao)", all_names)
+        selected_names = st.multiselect("🔍 Search & Compare (Type naam, click to select)", all_names)
         
         if selected_names:
             display_df = df[df['Student Name'].isin(selected_names)]
@@ -160,7 +159,6 @@ with col2:
         st.markdown("### 📥 Step 3: Download Reports")
         dl_col1, dl_col2 = st.columns(2)
         
-        # Excel File Download
         temp_excel = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
         display_df.to_excel(temp_excel.name, index=False)
         with open(temp_excel.name, "rb") as file:
@@ -172,7 +170,6 @@ with col2:
                 use_container_width=True
             )
             
-        # PDF File Download
         pdf_path = create_beautiful_pdf(display_df, st.session_state['pdf_title'])
         with open(pdf_path, "rb") as file:
             dl_col2.download_button(
